@@ -1,0 +1,175 @@
+{% extends 'registrationbase.html' %}
+{% load humanize %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block content %}
+{% include 'registrationheader.html' %}
+
+	<div class="container">
+    <div id="form_container">
+        <div class="row no-gutters">
+            <div class="col-lg-4">
+                <div id="left_form">
+                    <h2 class="mb-0">Hi {{request.user.username|title}}
+                        <span class="mb-0">
+                        <hr/>KWIKY <p>... stressless delivery</p></span></h2>
+                    
+                    <div class="myspace">
+
+                        <a href="{% url 'customer:dashboard' %}" class="mb-3 btn_1 rounded yellow purchase" target="_parent">Dashboard</a></br>
+                        <a href="{% url 'customer:customer_profile' request.user.profilecustomer.id %}" class="mb-3 btn_1 rounded yellow purchase" target="_parent">Customer Profile</a></br>
+                        <a href="{% url 'customer:order_history' request.user.id %}" class="btn_1 rounded yellow purchase mb-2" target="_parent">Order History</a></br>
+
+                        <a href="{% url 'customer:dashboard' %}" class="btn_1 mobile_btn  btn-block yellow btn-default mb-1 btn-lg btn-block">Dashboard</a></br>
+                        <a href="{% url 'customer:customer_profile' request.user.profilecustomer.id %}" class="btn_1 mb-1 btn-block mobile_btn yellow">Customer Profile</a></br>
+                        <a href="{% url 'customer:order_history' request.user.id %}" class="btn_1 btn-block mobile_btn yellow"> Order History</a></br>
+                   
+                    </div>    
+			    </div>
+            </div>
+            <div class="col-lg-8">
+                <div id="wizard_container">
+                    <div id="top-wizard">
+                        <div id="progressbar"></div>
+                        <span id="location"></span>
+                    </div>
+ <form>
+
+    
+
+   
+
+
+      <table class="table table-responsive-sm table-dark">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Item</th>
+            <th scope="col">Price</th>
+            <th scope="col">Qty.</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for o in order.order.all  %}
+            <tr>
+                <th scope="row">{{ forloop.counter }}</th>
+                <td>{{ o.subcategory.name }}</td>
+                <td>₦{{ o.subcategory.price }} </td>
+                <td>{{ o.quantity}}</td>
+            </tr>
+
+        {% endfor %}
+
+        <tr>
+           
+            <td colspan="2">{{ order.package.name }}</td>
+            <td>₦{{ order.package.price }}</td>
+            <td>{{ order.package.duration|stringformat:'d'}} <span>m</span> </td>
+           
+        </tr>
+         
+        </tbody>
+      </table>
+        
+
+    
+   
+   
+
+    <!-- <script src="https://js.paystack.co/v1/inline.js"></script>
+
+    <button type="button" class="btn btn-primary btn-block" onclick="payWithPaystack()">Pay Now - ₦ {{ order.total_price|intcomma }}</button>
+     -->
+  
+        <script src="https://checkout.flutterwave.com/v3.js"></script>
+        <button type="button" class="btn btn-primary btn-block" onclick="makePayment()">Pay Now - ₦ {{ order.total_price|intcomma }}</button>
+        <a href="{% url 'customer:order_edit' order.id %}"><button type="button" class="btn mt-3 btn-danger btn-block">Edit Order Items</button></a>
+        <a href="{% url 'customer:info_edit' order.id %}"><button type="button" class="btn mt-3 btn-success btn-block">Edit Order Info</button></a>
+   
+     
+   
+</form>
+ 
+<!-- <script>
+    function payWithPaystack(){
+      var handler = PaystackPop.setup({
+        //key: 'pk_live_1e13cd69bd7ecb3587a71e33ae19b29428d1da0f',  
+        key: 'pk_test_61f3bb31b892b386b84607cec15c8dcc882c40d7',
+        email: '{{ order.user.email }}',
+        amount:  '{{ order.total_price }}' * 100,
+        currency: "NGN",
+        ref: ''+Math.floor((Math.random() * 1000000000) + 1), // generates a pseudo-unique reference. Please replace with a reference you generated. Or remove the line entirely so our API will generate one for you
+        firstname: '{{ order.processorder.user.first_name|title }}',
+        lastname: '{{ order.processorder.user.last_name|title }}',
+        // label: "Optional string that replaces customer email"
+        metadata: {
+           custom_fields: [
+              {
+                  display_name: "{{ order.user.last_name|title }}",
+                  variable_name: "{{ order.user.profilecustomer.phone_number }}",
+                  value: "{{ order.user.profilecustomer.phone_number }}"
+              }
+           ]
+        },
+        callback: function(response){
+            alert('success. transaction ref is ' + response.reference);
+            window.location.replace("{% url 'customer:successpayment' order.id %}");
+            
+        },
+        onClose: function(){
+            alert('window closed');
+        }
+      });
+      handler.openIframe();
+    }
+  </script> -->
+
+  <script>
+    function makePayment() {
+      FlutterwaveCheckout({
+        public_key: "FLWPUBK-81e2cf995d851f5651ad46973477e845-X",
+        tx_ref: "{{ order.ref_code }}",
+        amount: "{{order.total_price }}",
+        currency: "NGN",
+        payment_options: "banktransfer, account, 1voucher, card, ussd, payattitude",
+        redirect_url: // specified redirect URL
+          "{% url 'customer:successpayment' order.id %}",
+       meta: {
+          consumer_id: "{{ order.user.id }}",
+          consumer_mac: "92a3-912ba-1192a",
+        },
+        customer: {
+          email: "{{ order.user.email }}",
+          phone_number: "{{ order.user.profilecustomer.phone_number }}",
+          name: "{{ order.user.get_full_name|title }}",
+
+
+          
+        },
+        callback: function (data) {
+          console.log(data);
+        },
+        onclose: function() {
+          // close modal
+          alert('window closed');
+        },
+        customizations: {
+          title: "Kwiky Delivery App",
+          description: "Payment for Food Delivery",
+          logo: "https://delivery.nigeriaware.com/static/registration/img/kwiky_logo_final.png",
+        },
+      });
+    }
+  </script>
+
+
+</div>
+                <!-- /Wizard container -->
+                </div>
+            </div><!-- /Row -->
+        </div><!-- /Form_container -->
+    </div>
+
+
+
+  {% endblock content %}
